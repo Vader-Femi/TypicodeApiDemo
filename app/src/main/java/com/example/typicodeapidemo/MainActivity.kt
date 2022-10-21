@@ -14,6 +14,7 @@ import com.example.typicodeapidemo.viewmodel.CommentsViewModel
 import com.example.typicodeapidemo.databinding.ActivityMainBinding
 import com.example.typicodeapidemo.repository.CommentsRepository
 import com.example.typicodeapidemo.viewmodel.ViewModelFactory
+import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -34,18 +35,33 @@ class MainActivity : AppCompatActivity() {
 
         setupRecyclerView()
 
-        lifecycleScope.launchWhenCreated {
+        lifecycleScope.launch {
+            getComments()
+        }
+
+        binding.swipeRefreshLayout.setOnRefreshListener {
+
+            binding.swipeRefreshLayout.isRefreshing = false
+
+            lifecycleScope.launch {
+                getComments()
+            }
+        }
+
+    }
+
+    private suspend fun getComments() {
             binding.progressBar.isVisible = true
             val response = try {
                 RetrofitInstance.api.getComments()
             } catch (e: IOException) {
                 Log.e(TAG, getString(R.string.internet_connection_error))
                 binding.progressBar.isVisible = false
-                return@launchWhenCreated
+                return
             } catch (e: HttpException) {
                 Log.e(TAG, getString(R.string.unexpected_response))
                 binding.progressBar.isVisible = false
-                return@launchWhenCreated
+                return
             }
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.forEach {
@@ -55,10 +71,9 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this@MainActivity,
                     getString(R.string.something_went_wrong),
-                    Toast.LENGTH_SHORT).show()
+                    Toast.LENGTH_LONG).show()
             }
             binding.progressBar.isVisible = false
-        }
     }
 
     private fun setupRecyclerView() = binding.rvComments.apply {
