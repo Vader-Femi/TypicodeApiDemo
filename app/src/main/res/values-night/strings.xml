@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="internet_connection_error">IOException: You might not have Internet Connection</string>
-    <string name="unexpected_response">HttpException: Unexpected response</string>
-</resources>

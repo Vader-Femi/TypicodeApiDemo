@@ -1,5 +1,6 @@
 package com.example.typicodeapidemo
 
+import com.example.typicodeapidemo.database.entity.Comment
 import retrofit2.Response
 import retrofit2.http.GET
 

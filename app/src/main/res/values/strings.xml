@@ -2,4 +2,5 @@
     <string name="app_name">TypicodeApiDemo</string>
     <string name="internet_connection_error">IOException: You might not have Internet Connection</string>
     <string name="unexpected_response">HttpException: Unexpected response</string>
+    <string name="something_went_wrong">Something went wrong</string>
 </resources>

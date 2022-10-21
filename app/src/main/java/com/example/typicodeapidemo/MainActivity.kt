@@ -2,11 +2,18 @@ package com.example.typicodeapidemo
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.typicodeapidemo.database.CommentsDatabase
+import com.example.typicodeapidemo.viewmodel.CommentsViewModel
 import com.example.typicodeapidemo.databinding.ActivityMainBinding
+import com.example.typicodeapidemo.repository.CommentsRepository
+import com.example.typicodeapidemo.viewmodel.ViewModelFactory
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -15,12 +22,15 @@ const val TAG = "MainActivity"
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var commentsAdapter: CommentsAdapter
+    private lateinit var viewModel: CommentsViewModel
+    private val commentsAdapter = CommentsAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        setupViewModel()
 
         setupRecyclerView()
 
@@ -28,27 +38,44 @@ class MainActivity : AppCompatActivity() {
             binding.progressBar.isVisible = true
             val response = try {
                 RetrofitInstance.api.getComments()
-            } catch (e: IOException){
+            } catch (e: IOException) {
                 Log.e(TAG, getString(R.string.internet_connection_error))
                 binding.progressBar.isVisible = false
                 return@launchWhenCreated
-            } catch (e: HttpException){
+            } catch (e: HttpException) {
                 Log.e(TAG, getString(R.string.unexpected_response))
                 binding.progressBar.isVisible = false
                 return@launchWhenCreated
             }
-            if (response.isSuccessful && response.body() != null){
-                commentsAdapter.comments = response.body()!!
-            } else{
-                Log.e(TAG, "Response not successful")
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.forEach {
+                    viewModel.insertComment(it)
+                }
+
+            } else {
+                Toast.makeText(this@MainActivity,
+                    getString(R.string.something_went_wrong),
+                    Toast.LENGTH_SHORT).show()
             }
             binding.progressBar.isVisible = false
         }
     }
 
     private fun setupRecyclerView() = binding.rvComments.apply {
-        commentsAdapter = CommentsAdapter()
         adapter = commentsAdapter
         layoutManager = LinearLayoutManager(this@MainActivity)
+
+        viewModel.getComments().observe(this@MainActivity) {
+            if (this@MainActivity.lifecycle.currentState == Lifecycle.State.RESUMED) {
+                commentsAdapter.comments = it
+            }
+        }
+    }
+
+    private fun setupViewModel() {
+        val database: CommentsDatabase = CommentsDatabase.invoke(this)
+        val commentsRepository = CommentsRepository(database)
+        val viewModelFactory = ViewModelFactory(commentsRepository)
+        viewModel = ViewModelProvider(this, viewModelFactory)[CommentsViewModel::class.java]
     }
 }
